@@ -1,0 +1,38 @@
+{
+  "name": "x402-agent-pay",
+  "version": "1.0.0",
+  "description": "Seamless USDC payments for AI agents using the x402 protocol",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "x402": "npx ts-node scripts/x402-fetch.ts",
+    "balance": "./scripts/check-balance.sh"
+  },
+  "keywords": [
+    "x402",
+    "usdc",
+    "payments",
+    "ai-agents",
+    "crypto",
+    "base",
+    "ethereum",
+    "openclaw"
+  ],
+  "author": "ClawMD <clawmd@openclaw.ai>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Omnivalent/x402-agent-pay"
+  },
+  "dependencies": {
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}
