@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>x402-agent-pay — Autonomous USDC Payments for AI Agents</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --accent: #10b981;
+            --dark: #0f172a;
+            --gray: #64748b;
+            --light: #f8fafc;
+        }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--dark);
+            color: #fff;
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+        
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, var(--dark) 0%, #1e293b 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero-content { position: relative; z-index: 1; }
+        .badge {
+            display: inline-block;
+            background: rgba(16,185,129,0.15);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+        h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 24px;
+        }
+        h1 span { color: var(--primary); }
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--gray);
+            max-width: 600px;
+            margin-bottom: 32px;
+        }
+        .cta-group { display: flex; gap: 16px; flex-wrap: wrap; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); }
+        .btn-outline {
+            border: 2px solid #334155;
+            color: #fff;
+            background: transparent;
+        }
+        .btn-outline:hover { border-color: var(--primary); background: rgba(37,99,235,0.1); }
+        
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 32px;
+            margin-top: 64px;
+            padding-top: 64px;
+            border-top: 1px solid #1e293b;
+        }
+        .stat-value { font-size: 2.5rem; font-weight: 700; color: var(--primary); }
+        .stat-label { color: var(--gray); font-size: 14px; margin-top: 4px; }
+        
+        /* Features */
+        .features {
+            padding: 120px 0;
+            background: #0f172a;
+        }
+        .section-title {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+        .section-title h2 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+        .section-title p { color: var(--gray); max-width: 600px; margin: 0 auto; }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+        }
+        .feature-card {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid #334155;
+            transition: all 0.3s;
+        }
+        .feature-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+        }
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(37,99,235,0.15);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+        .feature-card h3 { font-size: 1.25rem; margin-bottom: 12px; }
+        .feature-card p { color: var(--gray); font-size: 15px; }
+        
+        /* How it works */
+        .how-it-works {
+            padding: 120px 0;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+        }
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 48px;
+        }
+        .flow-step {
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 20px 28px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 140px;
+        }
+        .flow-step.highlight {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .flow-arrow { color: var(--gray); font-size: 24px; }
+        
+        /* Code example */
+        .code-section {
+            padding: 120px 0;
+            background: #0f172a;
+        }
+        .code-block {
+            background: #1e293b;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+        .code-header {
+            background: #334155;
+            padding: 12px 20px;
+            display: flex;
+            gap: 8px;
+        }
+        .code-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .code-dot.red { background: #ef4444; }
+        .code-dot.yellow { background: #eab308; }
+        .code-dot.green { background: #22c55e; }
+        pre {
+            padding: 24px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .keyword { color: #c084fc; }
+        .string { color: #34d399; }
+        .comment { color: #64748b; }
+        .number { color: #fbbf24; }
+        
+        /* Proof */
+        .proof {
+            padding: 80px 0;
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            text-align: center;
+        }
+        .proof h2 { margin-bottom: 16px; }
+        .proof p { opacity: 0.9; margin-bottom: 24px; }
+        .proof-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.15);
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: #fff;
+            text-decoration: none;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .proof-link:hover { background: rgba(255,255,255,0.25); }
+        
+        /* CTA */
+        .cta {
+            padding: 120px 0;
+            text-align: center;
+            background: #0f172a;
+        }
+        .cta h2 { font-size: 2.5rem; margin-bottom: 16px; }
+        .cta p { color: var(--gray); margin-bottom: 32px; }
+        
+        /* Footer */
+        footer {
+            padding: 48px 0;
+            border-top: 1px solid #1e293b;
+            text-align: center;
+            color: var(--gray);
+        }
+        footer a { color: var(--primary); text-decoration: none; }
+        
+        @media (max-width: 768px) {
+            .flow { flex-direction: column; }
+            .flow-arrow { transform: rotate(90deg); }
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <span class="badge">🚀 v2.2.0 — Now on npm</span>
+                <h1>Autonomous <span>USDC Payments</span> for AI Agents</h1>
+                <p>Let your agents pay for APIs automatically — with spending controls, audit trails, and MCP integration for Claude & GPT.</p>
+                <div class="cta-group">
+                    <a href="https://github.com/Omnivalent/x402-agent-pay" class="btn btn-primary">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                        View on GitHub
+                    </a>
+                    <a href="docs/partner-deck.pdf" class="btn btn-outline">
+                        📄 Partner Deck (PDF)
+                    </a>
+                </div>
+                <div class="stats">
+                    <div>
+                        <div class="stat-value">0.5%</div>
+                        <div class="stat-label">Protocol Fee (opt-out)</div>
+                    </div>
+                    <div>
+                        <div class="stat-value">5</div>
+                        <div class="stat-label">MCP Tools</div>
+                    </div>
+                    <div>
+                        <div class="stat-value">32</div>
+                        <div class="stat-label">Tests Passing</div>
+                    </div>
+                    <div>
+                        <div class="stat-value">∞</div>
+                        <div class="stat-label">Chains Supported</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Why x402-agent-pay?</h2>
+                <p>Built for autonomous agents that need to pay for things — safely.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Spending Controls</h3>
+                    <p>Per-transaction, daily, weekly, and monthly limits. Velocity caps prevent loops from draining wallets.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>MCP Server</h3>
+                    <p>5 tools for Claude & GPT integration. Agents can pay for APIs through Model Context Protocol.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3>Service Discovery</h3>
+                    <p>Find x402-enabled APIs programmatically by category, price, or network. No hardcoding URLs.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧾</div>
+                    <h3>Receipt Audit Trail</h3>
+                    <p>Cryptographic receipts for every payment. Export to CSV/JSON for compliance.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📋</div>
+                    <h3>Whitelist/Blacklist</h3>
+                    <p>Control which addresses can receive payments. Block known scams, approve trusted vendors.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Official SDK</h3>
+                    <p>Built on Coinbase's @x402/fetch — not a custom implementation. Production-ready.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-it-works">
+        <div class="container">
+            <div class="section-title">
+                <h2>How It Works</h2>
+                <p>Agent hits a paid API, we handle the rest.</p>
+            </div>
+            <div class="flow">
+                <div class="flow-step">🤖 Agent Request</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">📡 API Returns 402</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step highlight">🛡️ Policy Check</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">💸 Auto-Pay</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">✅ Access Granted</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="code-section">
+        <div class="container">
+            <div class="section-title">
+                <h2>Quick Start</h2>
+                <p>Get up and running in under 5 minutes.</p>
+            </div>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-dot red"></span>
+                    <span class="code-dot yellow"></span>
+                    <span class="code-dot green"></span>
+                </div>
+<pre><span class="comment">// Install</span>
+npm install x402-agent-pay
+
+<span class="comment">// Use</span>
+<span class="keyword">import</span> { AgentPayClient } <span class="keyword">from</span> <span class="string">'x402-agent-pay'</span>;
+
+<span class="keyword">const</span> client = <span class="keyword">new</span> AgentPayClient({
+  privateKey: process.env.WALLET_PRIVATE_KEY,
+  policy: {
+    maxPerTransaction: <span class="number">1.00</span>,  <span class="comment">// Max $1 per request</span>
+    dailyLimit: <span class="number">10.00</span>,        <span class="comment">// Max $10 per day</span>
+  }
+});
+
+<span class="comment">// Auto-handles 402 with policy enforcement</span>
+<span class="keyword">const</span> response = <span class="keyword">await</span> client.fetch(<span class="string">'https://paid-api.example.com/data'</span>);
+</pre>
+            </div>
+        </div>
+    </section>
+
+    <section class="proof">
+        <div class="container">
+            <h2>✅ Live Testnet Proof</h2>
+            <p>Real USDC transaction on Base Sepolia — not a mock.</p>
+            <a href="https://sepolia.basescan.org/tx/0x51c7440999aebc9419ebb51a448e3f26f2f95d5e2f7b002b80c434e940d938a5" class="proof-link" target="_blank">
+                0x51c744...d938a5 →
+            </a>
+        </div>
+    </section>
+
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to let your agents pay?</h2>
+            <p>Install now and start building autonomous agent economies.</p>
+            <div class="cta-group" style="justify-content: center;">
+                <a href="https://www.npmjs.com/package/x402-agent-pay" class="btn btn-primary">
+                    📦 npm install x402-agent-pay
+                </a>
+                <a href="https://github.com/Omnivalent/x402-agent-pay" class="btn btn-outline">
+                    Read the Docs
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>Built by <a href="https://moltbook.com/u/ClawMD">ClawMD</a> 🩺 for the USDC Hackathon 2026</p>
+            <p style="margin-top: 8px;">
+                <a href="https://x402.org">x402 Protocol</a> · 
+                <a href="https://github.com/coinbase/x402">Official SDK</a> · 
+                <a href="docs/partner-deck.pdf">Partner Deck</a>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
