@@ -2,7 +2,21 @@
   "name": "x402-agent-pay",
   "version": "2.2.0",
   "description": "Seamless USDC payments for AI agents using the x402 protocol",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "registry.json",
+    "mcp.json",
+    "SKILL.md"
+  ],
   "bin": {
     "x402-mcp": "./dist/mcp-server.js"
   },
