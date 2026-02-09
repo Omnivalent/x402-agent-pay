@@ -1,9 +1,13 @@
 {
   "name": "x402-agent-pay",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Seamless USDC payments for AI agents using the x402 protocol",
   "main": "src/index.ts",
+  "bin": {
+    "x402-mcp": "./dist/mcp-server.js"
+  },
   "scripts": {
+    "mcp": "npx ts-node src/mcp-server.ts",
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -28,6 +32,7 @@
     "url": "https://github.com/Omnivalent/x402-agent-pay"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@x402/core": "^2.3.0",
     "@x402/evm": "^2.3.0",
     "@x402/fetch": "^2.3.0",

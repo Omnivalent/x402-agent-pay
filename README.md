@@ -171,6 +171,39 @@ console.log(cheapestWeather?.url); // → Use with client.fetch()
 
 The registry is open — submit your x402-enabled service via PR to `registry.json`.
 
+## MCP Server (Claude/GPT Integration)
+
+x402-agent-pay includes an MCP server for direct integration with Claude, GPT, and other LLM agents:
+
+```bash
+# Run the MCP server
+X402_WALLET_KEY=0x... npm run mcp
+```
+
+**MCP Tools:**
+| Tool | Description |
+|------|-------------|
+| `x402_pay` | Make a paid request to an x402 endpoint |
+| `x402_discover` | Find services by category/price/network |
+| `x402_balance` | Check USDC balance |
+| `x402_status` | Get spending limits and usage |
+| `x402_history` | Get payment receipts |
+
+**Claude Desktop config** (`~/.config/claude/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "x402": {
+      "command": "npx",
+      "args": ["x402-agent-pay"],
+      "env": {
+        "X402_WALLET_KEY": "0x..."
+      }
+    }
+  }
+}
+```
+
 ## CLI Usage
 
 ```bash

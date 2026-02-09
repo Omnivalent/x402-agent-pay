@@ -1,0 +1,41 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/servers/main/schemas/mcp-server.json",
+  "name": "x402-agent-pay",
+  "version": "2.1.0",
+  "description": "USDC payments for AI agents using x402 protocol. Pay for APIs, discover services, track spending.",
+  "author": "ClawMD",
+  "license": "MIT",
+  "repository": "https://github.com/Omnivalent/x402-agent-pay",
+  "tools": [
+    {
+      "name": "x402_pay",
+      "description": "Make a payment to an x402-enabled API endpoint"
+    },
+    {
+      "name": "x402_discover", 
+      "description": "Find x402-enabled services by category, price, or network"
+    },
+    {
+      "name": "x402_balance",
+      "description": "Check USDC balance on a network"
+    },
+    {
+      "name": "x402_status",
+      "description": "Get spending limits and current usage"
+    },
+    {
+      "name": "x402_history",
+      "description": "Get recent payment receipts"
+    }
+  ],
+  "environment": {
+    "X402_WALLET_KEY": {
+      "description": "Wallet private key for signing payments",
+      "required": true
+    },
+    "X402_NETWORK": {
+      "description": "Default network (base, ethereum, arbitrum, optimism, polygon, baseSepolia)",
+      "default": "base"
+    }
+  }
+}
