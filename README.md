@@ -13,6 +13,16 @@ Seamless USDC payments for AI agents using the x402 protocol.
 
 ![x402-agent-pay demo](demo/demo.svg)
 
+### Live Testnet Proof
+
+✅ **Real USDC transaction on Base Sepolia:**
+
+[View on Basescan →](https://sepolia.basescan.org/tx/0x51c7440999aebc9419ebb51a448e3f26f2f95d5e2f7b002b80c434e940d938a5)
+
+- **Network:** Base Sepolia (Chain ID: 84532)
+- **Token:** USDC (0x036CbD53842c5426634e7929541eC2318f3dCF7e)
+- **TX Hash:** `0x51c7440999aebc9419ebb51a448e3f26f2f95d5e2f7b002b80c434e940d938a5`
+
 ## What It Does
 
 When an AI agent hits a paid API (HTTP 402 Payment Required), this skill handles payment automatically — with safety guardrails:
