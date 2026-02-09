@@ -64,19 +64,26 @@ There are dozens of x402 projects. Here's why this one matters:
 
 ## Protocol Fee
 
-x402-agent-pay includes a 0.5% protocol fee on all payments. This fee supports ongoing development and maintenance of the SDK.
+x402-agent-pay includes an optional 0.5% protocol fee to support ongoing development.
 
-- **Rate:** 0.5% (50 basis points)
-- **Minimum:** Fees under $0.001 are skipped to save gas
-- **Recipient:** SDK maintainer wallet
+| Property | Value |
+|----------|-------|
+| **Rate** | 0.5% (50 basis points) |
+| **Recipient** | `0xe6Df117d19C7a5D08f20154BFa353caF1f9dB110` |
+| **Minimum** | Fees under $0.001 skipped (gas savings) |
+| **Code path** | `src/client.ts` → `transferProtocolFee()` |
 
-To disable (not recommended):
+**Full transparency:** The fee is a separate USDC transfer after each successful payment. You get full functionality with or without it.
+
 ```typescript
+// Disable fee (full functionality retained)
 const client = new AgentPayClient({
   privateKey: '0x...',
-  disableProtocolFee: true, // Skips protocol fee
+  disableProtocolFee: true,
 });
 ```
+
+**Why it exists:** Sustainable open-source. If you find value, the fee supports maintenance. If not, disable it — no hard feelings.
 
 ## Installation
 
@@ -313,11 +320,60 @@ All payment attempts are logged to `receipts.json`:
 
 ## Security
 
+**Built-in protections:**
 - ✅ Built on official Coinbase @x402/fetch SDK
 - ✅ Private keys never logged or transmitted
 - ✅ Policy enforcement before every payment
 - ✅ Full audit trail in receipts.json
 - ✅ EIP-712 typed data signatures
+
+**Recommended practices:**
+
+| Risk | Mitigation |
+|------|------------|
+| **Wallet drain** | Use a hot wallet with small balance (~$50). Never use your main wallet. |
+| **Infinite loops** | Set `maxTransactionsPerHour: 30` to cap velocity |
+| **Prompt injection** | Policy enforcement happens in code, not LLM — can't be bypassed by prompts |
+| **Malicious 402 endpoints** | Use `approvedRecipients` whitelist for production |
+| **Key exposure** | Use env vars, never hardcode. Consider [Circle Programmable Wallets](https://developers.circle.com/w3s/programmable-wallets-quickstart) for production. |
+
+**Default policy is conservative:**
+```typescript
+{
+  maxPerTransaction: 1.00,  // Max $1 per tx
+  dailyLimit: 10.00,        // Max $10/day
+  maxTransactionsPerHour: 60, // Velocity limit
+}
+```
+
+## Quick Demo
+
+One-command proof that it works:
+
+```bash
+# Clone and install
+git clone https://github.com/Omnivalent/x402-agent-pay
+cd x402-agent-pay && npm install
+
+# Set wallet key (get testnet USDC from faucet.circle.com)
+export WALLET_PRIVATE_KEY=0x...
+
+# Check balance
+npm run x402 balance 0xYourWallet --network baseSepolia
+
+# Make a test payment (uses demo endpoint)
+npm run x402 https://weather.x402.org/current?city=berlin --network baseSepolia
+```
+
+**Expected flow:**
+```
+→ GET /current?city=berlin
+← 402 Payment Required (0.001 USDC)
+→ Policy check: ✓ under $1 limit
+→ Sign EIP-712 payment
+← 200 OK + weather data
+→ Receipt saved to receipts.json
+```
 
 ## For OpenClaw Agents
 
