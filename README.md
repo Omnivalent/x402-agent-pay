@@ -28,10 +28,28 @@ Agent → Paid API → 402 Response → Policy Check → Auto-Pay → Access Gra
 
 Autonomous agents need to pay for things, but giving them unlimited wallet access is dangerous. This library adds:
 
-- 🛡️ **Spending controls** — Per-transaction and daily limits
+- 🛡️ **Spending controls** — Per-transaction, daily, weekly, monthly limits
+- ⚡ **Velocity limits** — Prevent rapid-fire loops from draining wallets
 - 📋 **Whitelist/blacklist** — Control who can receive payments
-- 📜 **Audit trail** — Every payment attempt logged
+- 📜 **Audit trail** — Every payment attempt logged with receipts
+- 🔌 **Facilitator integration** — Connects to Coinbase's x402 facilitator
 - ⚡ **Official SDK** — Built on Coinbase's @x402/fetch
+
+## How This Differs
+
+There are dozens of x402 projects. Here's why this one matters:
+
+| Feature | Raw @x402/fetch | x402-agent-pay |
+|---------|-----------------|----------------|
+| Auto-402 handling | ✅ | ✅ |
+| Spending limits | ❌ | ✅ Per-tx, daily, weekly, monthly |
+| Velocity limits | ❌ | ✅ Max tx/hour |
+| Recipient controls | ❌ | ✅ Whitelist + blacklist |
+| Receipt logging | ❌ | ✅ Full audit trail |
+| OpenClaw integration | ❌ | ✅ Native skill |
+| Policy enforcement | ❌ | ✅ Block before signing |
+
+**The unique angle:** Purpose-built for autonomous OpenClaw agents with guardrails that prevent wallet drain from bugs, prompt injections, or infinite loops.
 
 ## Installation
 
@@ -73,6 +91,10 @@ const data = await response.json();
 |--------|---------|-------------|
 | `maxPerTransaction` | $1.00 | Maximum per single payment |
 | `dailyLimit` | $10.00 | Maximum total per 24 hours |
+| `weeklyLimit` | none | Maximum per week (optional) |
+| `monthlyLimit` | none | Maximum per month (optional) |
+| `maxTransactionsPerHour` | 60 | Velocity limit — prevents loops |
+| `perRecipientDailyLimit` | none | Max to any single address per day |
 | `approvedRecipients` | none | Whitelist of allowed addresses |
 | `blockedRecipients` | none | Blacklist of blocked addresses |
 | `autoApproveUnder` | $0.10 | Skip detailed logging for tiny amounts |
@@ -83,8 +105,12 @@ const client = new AgentPayClient({
   policy: {
     maxPerTransaction: 5.00,
     dailyLimit: 50.00,
-    approvedRecipients: ['0x1234...', '0x5678...'],  // Only these can receive
-    blockedRecipients: ['0xScam...'],                 // Never pay these
+    weeklyLimit: 200.00,
+    monthlyLimit: 500.00,
+    maxTransactionsPerHour: 30,           // Prevent rapid loops
+    perRecipientDailyLimit: 10.00,        // Max $10 to any one address
+    approvedRecipients: ['0x1234...'],    // Only these can receive
+    blockedRecipients: ['0xScam...'],     // Never pay these
   },
 });
 ```

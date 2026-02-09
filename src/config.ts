@@ -51,12 +51,26 @@ export const FACILITATOR_URL = 'https://x402.org/facilitator';
 
 /**
  * Payment Policy — spending controls for autonomous agents
+ * 
+ * Comprehensive limits to prevent wallet drain from:
+ * - Single large transactions
+ * - Cumulative spending over time
+ * - Rapid-fire loops (velocity limits)
+ * - Payments to unknown/malicious addresses
  */
 export interface PaymentPolicy {
   /** Maximum USDC per single transaction (in human units, e.g., 0.50) */
   maxPerTransaction: number;
   /** Maximum USDC per 24 hours (in human units, e.g., 10.00) */
   dailyLimit: number;
+  /** Maximum USDC per week (optional) */
+  weeklyLimit?: number;
+  /** Maximum USDC per month (optional) */
+  monthlyLimit?: number;
+  /** Maximum transactions per hour - prevents rapid-fire loops */
+  maxTransactionsPerHour?: number;
+  /** Maximum USDC per recipient per day - limits exposure to single address */
+  perRecipientDailyLimit?: number;
   /** Whitelist of approved recipient addresses (if set, only these can receive) */
   approvedRecipients?: string[];
   /** Blacklist of blocked recipient addresses */
@@ -65,12 +79,15 @@ export interface PaymentPolicy {
   requireDryRun?: boolean;
   /** Auto-approve payments under this amount without logging (in human units) */
   autoApproveUnder?: number;
+  /** Simulate payment through facilitator before signing (extra safety) */
+  simulateBeforePay?: boolean;
 }
 
 /** Default conservative policy for agents */
 export const DEFAULT_POLICY: PaymentPolicy = {
   maxPerTransaction: 1.00,  // Max $1 per transaction
   dailyLimit: 10.00,        // Max $10 per day
+  maxTransactionsPerHour: 60, // Max 60 tx/hour (prevents loops)
   autoApproveUnder: 0.10,   // Auto-approve under $0.10
   requireDryRun: false,
 };
