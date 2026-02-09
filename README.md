@@ -7,144 +7,210 @@ Seamless USDC payments for AI agents using the x402 protocol.
 [![Tests](https://github.com/Omnivalent/x402-agent-pay/actions/workflows/test.yml/badge.svg)](https://github.com/Omnivalent/x402-agent-pay/actions)
 [![USDC Hackathon](https://img.shields.io/badge/USDC%20Hackathon-2026-blue)](https://moltbook.com)
 
+> Built on the official [@x402/fetch](https://github.com/coinbase/x402) SDK with spending controls and audit trails for autonomous agents.
+
 ## What It Does
 
-When an AI agent hits a paid API (HTTP 402 Payment Required), this skill handles payment automatically:
+When an AI agent hits a paid API (HTTP 402 Payment Required), this skill handles payment automatically — with safety guardrails:
 
 ```
-Agent → Paid API → 402 Response → Auto-Pay → Access Granted
+Agent → Paid API → 402 Response → Policy Check → Auto-Pay → Access Granted
 ```
 
-No human intervention. No wallet management UI. Just seamless payments.
+**Before:** Agent hits 402, crashes or needs human intervention  
+**After:** Agent pays automatically within defined limits, continues working
 
 ## Why This Matters
 
-Autonomous agents need to pay for things:
-- API calls (weather, search, AI inference)
-- Compute resources
-- Other agents' services
-- Data feeds
+Autonomous agents need to pay for things, but giving them unlimited wallet access is dangerous. This library adds:
 
-**Before:** Agent hits 402, crashes or needs human intervention  
-**After:** Agent pays automatically, continues working
+- 🛡️ **Spending controls** — Per-transaction and daily limits
+- 📋 **Whitelist/blacklist** — Control who can receive payments
+- 📜 **Audit trail** — Every payment attempt logged
+- ⚡ **Official SDK** — Built on Coinbase's @x402/fetch
 
-## Features
+## Installation
 
-- **Auto-402 handling** — Automatic payment negotiation when hitting paid APIs
-- **Multi-chain support** — Base, Ethereum, Arbitrum, Optimism, Polygon
-- **Balance monitoring** — Check wallet before operations, warn if low
-- **Payment receipts** — Audit trail with timestamps, amounts, recipients
-- **EIP-712 signatures** — Standard typed data signing for security
+```bash
+npm install x402-agent-pay
+# or
+git clone https://github.com/Omnivalent/x402-agent-pay
+cd x402-agent-pay && npm install
+```
 
 ## Quick Start
 
-### Installation
+```typescript
+import { AgentPayClient } from 'x402-agent-pay';
 
-```bash
-# Clone the skill
-git clone https://github.com/Omnivalent/x402-agent-pay
-cd x402-agent-pay
+const client = new AgentPayClient({
+  privateKey: process.env.WALLET_PRIVATE_KEY,
+  network: 'base',
+  policy: {
+    maxPerTransaction: 1.00,  // Max $1 per request
+    dailyLimit: 10.00,        // Max $10 per day
+  },
+  onPayment: (receipt) => {
+    console.log(`Paid ${receipt.amount} USDC to ${receipt.recipient}`);
+  },
+  onBlocked: (reason) => {
+    console.log(`Payment blocked: ${reason}`);
+  },
+});
 
-# Install dependencies
-npm install
+// Auto-handles 402 with policy enforcement
+const response = await client.fetch('https://paid-api.example.com/data');
+const data = await response.json();
 ```
 
-### Environment Setup
+## Spending Controls
 
-```bash
-# Required: your wallet private key
-export WALLET_PRIVATE_KEY="0x..."
-
-# Optional: custom RPC endpoints
-export BASE_RPC_URL="https://mainnet.base.org"
-```
-
-### Usage
-
-#### TypeScript/Node.js
+| Policy | Default | Description |
+|--------|---------|-------------|
+| `maxPerTransaction` | $1.00 | Maximum per single payment |
+| `dailyLimit` | $10.00 | Maximum total per 24 hours |
+| `approvedRecipients` | none | Whitelist of allowed addresses |
+| `blockedRecipients` | none | Blacklist of blocked addresses |
+| `autoApproveUnder` | $0.10 | Skip detailed logging for tiny amounts |
 
 ```typescript
-import { x402Fetch, x402Client, checkBalance } from 'x402-agent-pay';
-
-// Option 1: Direct fetch with auto-402 handling
-const response = await x402Fetch({
-  url: 'https://paid-api.example.com/data',
+const client = new AgentPayClient({
   privateKey: process.env.WALLET_PRIVATE_KEY,
-  network: 'base'
+  policy: {
+    maxPerTransaction: 5.00,
+    dailyLimit: 50.00,
+    approvedRecipients: ['0x1234...', '0x5678...'],  // Only these can receive
+    blockedRecipients: ['0xScam...'],                 // Never pay these
+  },
 });
-const data = await response.json();
-
-// Option 2: Create reusable client
-const client = x402Client({
-  privateKey: process.env.WALLET_PRIVATE_KEY,
-  network: 'base'
-});
-const res = await client.fetch('https://paid-api.example.com/data');
-
-// Option 3: Check balance first
-const balance = await checkBalance(walletAddress, 'base');
-console.log(`Balance: ${balance.balanceUsdc} USDC`);
 ```
 
-#### CLI
+## CLI Usage
 
 ```bash
+# Set your wallet key
+export WALLET_PRIVATE_KEY=0x...
+
 # Make a paid request
 npx ts-node scripts/x402-fetch.ts https://paid-api.example.com/data
 
-# Dry run (see payment details without paying)
-npx ts-node scripts/x402-fetch.ts https://paid-api.example.com/data --dry-run
+# Check balance
+npx ts-node scripts/x402-fetch.ts balance 0xYourWallet --network base
 
-# Check USDC balance
-./scripts/check-balance.sh 0xYourWallet base
+# View spending status
+npx ts-node scripts/x402-fetch.ts status
+
+# View payment history
+npx ts-node scripts/x402-fetch.ts history 10
+
+# Custom limits
+npx ts-node scripts/x402-fetch.ts https://api.example.com --max-per-tx 5 --daily-limit 50
+```
+
+## Supported Networks
+
+| Network | Chain ID | Status |
+|---------|----------|--------|
+| Base | 8453 | ✅ Primary |
+| Ethereum | 1 | ✅ Supported |
+| Arbitrum | 42161 | ✅ Supported |
+| Optimism | 10 | ✅ Supported |
+| Polygon | 137 | ✅ Supported |
+| Base Sepolia | 84532 | ✅ Testnet |
+
+## API Reference
+
+### AgentPayClient
+
+Main client with policy enforcement and receipt tracking.
+
+```typescript
+const client = new AgentPayClient(config: AgentPayConfig);
+
+// Make payment-enabled request
+await client.fetch(url, init?, options?);
+
+// Get spending status
+client.getSpendingStatus();
+
+// Get payment history  
+client.getHistory(limit?);
+
+// Export receipts
+client.exportReceiptsCsv();
+```
+
+### Simple Fetch (No Policy)
+
+For cases where you want direct SDK access without policy enforcement:
+
+```typescript
+import { createSimpleFetch } from 'x402-agent-pay';
+
+const fetch402 = createSimpleFetch(process.env.WALLET_PRIVATE_KEY);
+const response = await fetch402('https://paid-api.com/data');
+```
+
+### Balance Checking
+
+```typescript
+import { checkBalance, checkAllBalances } from 'x402-agent-pay';
+
+// Single network
+const balance = await checkBalance('0xYourWallet', 'base');
+console.log(`${balance.balanceUsdc} USDC`);
+
+// All networks
+const balances = await checkAllBalances('0xYourWallet');
+```
+
+## Receipt Storage
+
+All payment attempts are logged to `receipts.json`:
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "timestamp": "2026-02-09T07:30:00.000Z",
+  "url": "https://api.example.com/data",
+  "amount": "0.500000",
+  "currency": "USDC",
+  "network": "base",
+  "recipient": "0x1234...",
+  "txHash": "0xabc123...",
+  "status": "success"
+}
 ```
 
 ## How x402 Works
 
 1. **Request** → Client calls a paid API
-2. **402 Response** → Server returns payment details in `PAYMENT-REQUIRED` header
-3. **Sign & Pay** → Client signs EIP-712 payment, retries with `PAYMENT-SIGNATURE` header
-4. **Access** → Server verifies signature, settles payment, returns resource
+2. **402 Response** → Server returns payment requirements in header
+3. **Policy Check** → Client validates against spending limits
+4. **Sign & Pay** → Client signs EIP-712 payment via facilitator
+5. **Retry** → Request retried with payment proof header
+6. **Access** → Server verifies, returns resource
+7. **Receipt** → Payment logged for audit
 
-## Supported Networks
+## Security
 
-| Network | Chain ID | USDC Address |
-|---------|----------|--------------|
-| Base | 8453 | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
-| Ethereum | 1 | `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` |
-| Arbitrum | 42161 | `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` |
-| Optimism | 10 | `0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85` |
-| Polygon | 137 | `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359` |
+- ✅ Built on official Coinbase @x402/fetch SDK
+- ✅ Private keys never logged or transmitted
+- ✅ Policy enforcement before every payment
+- ✅ Full audit trail in receipts.json
+- ✅ EIP-712 typed data signatures
 
 ## For OpenClaw Agents
 
-This skill integrates with OpenClaw's tool system:
+See [SKILL.md](./SKILL.md) for OpenClaw integration.
 
 ```
 ~/.openclaw/workspace/skills/x402/
 ├── SKILL.md          # Skill manifest
-├── scripts/
-│   ├── x402-fetch.ts    # Payment-enabled fetch
-│   └── check-balance.sh # Balance checker
-└── references/
-    └── x402-spec.md     # Protocol documentation
+├── src/              # Source code
+├── scripts/          # CLI tools
+└── receipts.json     # Payment history
 ```
-
-## Testing
-
-```bash
-# Run tests
-npm test
-
-# Test against mock 402 server
-npm run test:integration
-```
-
-## Security
-
-- Private keys are **never logged or transmitted** — only used locally for signing
-- EIP-712 typed data ensures signature validity
-- All payments are on-chain and auditable
 
 ## Links
 

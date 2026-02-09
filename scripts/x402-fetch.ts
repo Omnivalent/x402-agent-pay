@@ -1,230 +1,178 @@
 #!/usr/bin/env npx ts-node
 /**
- * x402-fetch.ts - Simple x402 payment-enabled fetch wrapper
- * 
- * Usage:
- *   npx ts-node x402-fetch.ts <url> [options]
- *   
- * Options:
- *   --method POST|GET|...
- *   --body '{"key":"value"}'
- *   --network base|ethereum|arbitrum
- *   --dry-run  (show payment details without paying)
- * 
- * Environment:
- *   WALLET_PRIVATE_KEY - Required for signing payments
+ * CLI for x402-agent-pay
+ * Make payment-enabled HTTP requests with policy enforcement
  */
 
-import { createWalletClient, http, parseUnits, encodeFunctionData } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { base, mainnet, arbitrum, optimism, polygon } from 'viem/chains';
+import { AgentPayClient } from '../src/client';
+import { checkBalance } from '../src/balance';
+import { NetworkName, DEFAULT_POLICY } from '../src/config';
 
-const NETWORKS: Record<string, any> = {
-  base: { chain: base, rpc: process.env.BASE_RPC_URL || 'https://mainnet.base.org' },
-  ethereum: { chain: mainnet, rpc: process.env.ETH_RPC_URL || 'https://eth.llamarpc.com' },
-  arbitrum: { chain: arbitrum, rpc: process.env.ARB_RPC_URL || 'https://arb1.arbitrum.io/rpc' },
-  optimism: { chain: optimism, rpc: process.env.OP_RPC_URL || 'https://mainnet.optimism.io' },
-  polygon: { chain: polygon, rpc: process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com' },
-};
+const args = process.argv.slice(2);
 
-// USDC addresses per network
-const USDC_ADDRESSES: Record<string, `0x${string}`> = {
-  base: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-  ethereum: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-  arbitrum: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-  optimism: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
-  polygon: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-};
+function printUsage() {
+  console.log(`
+x402-agent-pay CLI
 
-interface PaymentRequirement {
-  amount: string;
-  currency: string;
-  network: string;
-  recipient: string;
-  scheme: string;
-  facilitator?: string;
+Usage:
+  x402-fetch.ts <url> [options]          Make a payment-enabled request
+  x402-fetch.ts balance <wallet>         Check USDC balance
+  x402-fetch.ts status                   Show spending status
+  x402-fetch.ts history [limit]          Show payment history
+
+Options:
+  --method <METHOD>     HTTP method (default: GET)
+  --body <JSON>         Request body
+  --network <NETWORK>   Network: base, ethereum, arbitrum, optimism, polygon, baseSepolia
+  --dry-run             Show payment details without paying
+  --skip-policy         Skip policy checks (dangerous!)
+  --max-per-tx <USD>    Override max per transaction (default: ${DEFAULT_POLICY.maxPerTransaction})
+  --daily-limit <USD>   Override daily limit (default: ${DEFAULT_POLICY.dailyLimit})
+
+Environment:
+  WALLET_PRIVATE_KEY    Required: Your wallet private key (0x...)
+
+Examples:
+  # Make a paid request
+  x402-fetch.ts https://api.example.com/paid-endpoint
+
+  # Check balance on Base
+  x402-fetch.ts balance 0xYourWallet --network base
+
+  # Custom limits
+  x402-fetch.ts https://api.example.com/data --max-per-tx 5 --daily-limit 50
+`);
 }
 
-async function parseArgs() {
-  const args = process.argv.slice(2);
-  const url = args[0];
-  
-  if (!url || url.startsWith('--')) {
-    console.error('Usage: x402-fetch.ts <url> [--method POST] [--body "{}"] [--network base] [--dry-run]');
-    process.exit(1);
+async function main() {
+  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+    printUsage();
+    process.exit(0);
   }
 
-  const options: any = { url, method: 'GET', network: 'base', dryRun: false };
-  
-  for (let i = 1; i < args.length; i++) {
-    if (args[i] === '--method') options.method = args[++i];
-    else if (args[i] === '--body') options.body = args[++i];
-    else if (args[i] === '--network') options.network = args[++i];
-    else if (args[i] === '--dry-run') options.dryRun = true;
-  }
-
-  return options;
-}
-
-function decodePaymentRequired(header: string): PaymentRequirement[] {
-  try {
-    const decoded = JSON.parse(Buffer.from(header, 'base64').toString('utf-8'));
-    return Array.isArray(decoded) ? decoded : [decoded];
-  } catch {
-    throw new Error('Failed to decode PAYMENT-REQUIRED header');
-  }
-}
-
-async function createPaymentSignature(
-  requirement: PaymentRequirement,
-  privateKey: string
-): Promise<string> {
-  const networkConfig = NETWORKS[requirement.network];
-  if (!networkConfig) throw new Error(`Unsupported network: ${requirement.network}`);
-
-  const account = privateKeyToAccount(privateKey as `0x${string}`);
-  const client = createWalletClient({
-    account,
-    chain: networkConfig.chain,
-    transport: http(networkConfig.rpc),
-  });
-
-  // Create EIP-712 typed data for x402 payment
-  const domain = {
-    name: 'x402',
-    version: '2',
-    chainId: networkConfig.chain.id,
-  };
-
-  const types = {
-    Payment: [
-      { name: 'recipient', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-      { name: 'token', type: 'address' },
-      { name: 'nonce', type: 'uint256' },
-    ],
-  };
-
-  const usdcAddress = USDC_ADDRESSES[requirement.network];
-  const nonce = Date.now();
-
-  const message = {
-    recipient: requirement.recipient as `0x${string}`,
-    amount: BigInt(requirement.amount),
-    token: usdcAddress,
-    nonce: BigInt(nonce),
-  };
-
-  const signature = await client.signTypedData({
-    domain,
-    types,
-    primaryType: 'Payment',
-    message,
-  });
-
-  // Create payment payload
-  const payload = {
-    signature,
-    sender: account.address,
-    nonce,
-    network: requirement.network,
-    scheme: requirement.scheme,
-  };
-
-  return Buffer.from(JSON.stringify(payload)).toString('base64');
-}
-
-async function x402Fetch(options: any) {
-  const { url, method, body, network, dryRun } = options;
-  
-  console.log(`[x402] Requesting: ${method} ${url}`);
-
-  // Step 1: Initial request
-  const initialResponse = await fetch(url, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body,
-  });
-
-  // If not 402, return response directly
-  if (initialResponse.status !== 402) {
-    console.log(`[x402] Response: ${initialResponse.status} (no payment required)`);
-    return initialResponse;
-  }
-
-  // Step 2: Parse payment requirements
-  const paymentHeader = initialResponse.headers.get('PAYMENT-REQUIRED');
-  if (!paymentHeader) {
-    throw new Error('402 response missing PAYMENT-REQUIRED header');
-  }
-
-  const requirements = decodePaymentRequired(paymentHeader);
-  console.log('[x402] Payment required:');
-  requirements.forEach((req, i) => {
-    const amount = Number(req.amount) / 1e6; // Assuming USDC 6 decimals
-    console.log(`  [${i}] ${amount} ${req.currency} on ${req.network} → ${req.recipient.slice(0, 10)}...`);
-  });
-
-  if (dryRun) {
-    console.log('[x402] Dry run - not paying');
-    return initialResponse;
-  }
-
-  // Step 3: Select requirement matching preferred network
-  const requirement = requirements.find(r => r.network === network) || requirements[0];
-  console.log(`[x402] Selected: ${requirement.network}`);
-
-  // Step 4: Create payment signature
   const privateKey = process.env.WALLET_PRIVATE_KEY;
-  if (!privateKey) {
-    throw new Error('WALLET_PRIVATE_KEY environment variable required');
-  }
-
-  console.log('[x402] Signing payment...');
-  const paymentSignature = await createPaymentSignature(requirement, privateKey);
-
-  // Step 5: Retry with payment
-  console.log('[x402] Retrying with payment...');
-  const paidResponse = await fetch(url, {
-    method,
-    headers: {
-      ...(body ? { 'Content-Type': 'application/json' } : {}),
-      'PAYMENT-SIGNATURE': paymentSignature,
-    },
-    body,
-  });
-
-  console.log(`[x402] Response: ${paidResponse.status}`);
-  
-  if (paidResponse.status === 200) {
-    const paymentResponse = paidResponse.headers.get('PAYMENT-RESPONSE');
-    if (paymentResponse) {
-      const settlement = JSON.parse(Buffer.from(paymentResponse, 'base64').toString());
-      console.log(`[x402] Payment settled: ${settlement.txHash || 'confirmed'}`);
-    }
-  }
-
-  return paidResponse;
-}
-
-// Main
-(async () => {
-  try {
-    const options = await parseArgs();
-    const response = await x402Fetch(options);
-    
-    const contentType = response.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-      const data = await response.json();
-      console.log('\n--- Response ---');
-      console.log(JSON.stringify(data, null, 2));
-    } else {
-      const text = await response.text();
-      console.log('\n--- Response ---');
-      console.log(text);
-    }
-  } catch (err: any) {
-    console.error(`[x402] Error: ${err.message}`);
+  if (!privateKey && args[0] !== 'balance') {
+    console.error('Error: WALLET_PRIVATE_KEY environment variable is required');
     process.exit(1);
   }
-})();
+
+  const command = args[0];
+
+  // Balance command
+  if (command === 'balance') {
+    const wallet = args[1];
+    if (!wallet) {
+      console.error('Error: wallet address required');
+      process.exit(1);
+    }
+    const networkIdx = args.indexOf('--network');
+    const network = (networkIdx > -1 ? args[networkIdx + 1] : 'base') as NetworkName;
+    
+    const result = await checkBalance(wallet, network);
+    console.log(`\n💰 Balance for ${wallet} on ${network}:`);
+    console.log(`   ${result.balanceUsdc} USDC`);
+    return;
+  }
+
+  // Status command
+  if (command === 'status') {
+    const client = new AgentPayClient({ privateKey: privateKey! });
+    const status = client.getSpendingStatus();
+    console.log('\n📊 Spending Status:');
+    console.log(`   Today: $${status.daily.totalUsdc.toFixed(2)} spent (${status.daily.transactions} transactions)`);
+    console.log(`   Remaining: $${status.remainingDaily.toFixed(2)} of $${status.policy.dailyLimit.toFixed(2)} daily limit`);
+    console.log(`   Max per tx: $${status.policy.maxPerTransaction.toFixed(2)}`);
+    return;
+  }
+
+  // History command
+  if (command === 'history') {
+    const limit = parseInt(args[1]) || 10;
+    const client = new AgentPayClient({ privateKey: privateKey! });
+    const history = client.getHistory(limit);
+    
+    console.log(`\n📜 Last ${limit} payments:`);
+    if (history.length === 0) {
+      console.log('   No payments recorded yet.');
+    } else {
+      for (const r of history) {
+        const status = r.status === 'success' ? '✅' : r.status === 'blocked' ? '🚫' : '⏳';
+        console.log(`   ${status} ${r.timestamp} | ${r.amount} USDC | ${r.url.substring(0, 50)}...`);
+        if (r.txHash) console.log(`      tx: ${r.txHash}`);
+        if (r.blockReason) console.log(`      reason: ${r.blockReason}`);
+      }
+    }
+    return;
+  }
+
+  // Default: fetch URL
+  const url = command;
+  
+  // Parse options
+  const methodIdx = args.indexOf('--method');
+  const method = methodIdx > -1 ? args[methodIdx + 1] : 'GET';
+  
+  const bodyIdx = args.indexOf('--body');
+  const body = bodyIdx > -1 ? args[bodyIdx + 1] : undefined;
+  
+  const networkIdx = args.indexOf('--network');
+  const network = (networkIdx > -1 ? args[networkIdx + 1] : 'base') as NetworkName;
+  
+  const dryRun = args.includes('--dry-run');
+  const skipPolicy = args.includes('--skip-policy');
+
+  const maxPerTxIdx = args.indexOf('--max-per-tx');
+  const maxPerTransaction = maxPerTxIdx > -1 ? parseFloat(args[maxPerTxIdx + 1]) : DEFAULT_POLICY.maxPerTransaction;
+
+  const dailyLimitIdx = args.indexOf('--daily-limit');
+  const dailyLimit = dailyLimitIdx > -1 ? parseFloat(args[dailyLimitIdx + 1]) : DEFAULT_POLICY.dailyLimit;
+
+  console.log(`[x402] Requesting: ${method} ${url}`);
+  console.log(`[x402] Network: ${network}`);
+  console.log(`[x402] Policy: max $${maxPerTransaction}/tx, $${dailyLimit}/day`);
+
+  const client = new AgentPayClient({
+    privateKey: privateKey!,
+    network,
+    policy: {
+      maxPerTransaction,
+      dailyLimit,
+    },
+    onPayment: (receipt) => {
+      console.log(`\n✅ Payment successful!`);
+      console.log(`   Amount: ${receipt.amount} USDC`);
+      console.log(`   Recipient: ${receipt.recipient}`);
+      if (receipt.txHash) console.log(`   TX: ${receipt.txHash}`);
+    },
+    onBlocked: (reason) => {
+      console.log(`\n🚫 Payment blocked: ${reason}`);
+    },
+  });
+
+  try {
+    const response = await client.fetch(url, {
+      method,
+      body,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    }, {
+      network,
+      skipPolicyCheck: skipPolicy,
+    });
+
+    console.log(`[x402] Response: ${response.status} ${response.statusText}`);
+    
+    const text = await response.text();
+    console.log('\n--- Response ---');
+    console.log(text.substring(0, 2000));
+    if (text.length > 2000) console.log('... (truncated)');
+    
+  } catch (error: any) {
+    if (error.name === 'PaymentBlockedError') {
+      console.error(`\n🚫 Payment blocked by policy: ${error.message}`);
+      process.exit(1);
+    }
+    throw error;
+  }
+}
+
+main().catch(console.error);

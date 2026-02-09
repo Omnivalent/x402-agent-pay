@@ -1,6 +1,6 @@
 {
   "name": "x402-agent-pay",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Seamless USDC payments for AI agents using the x402 protocol",
   "main": "src/index.ts",
   "scripts": {
@@ -28,6 +28,9 @@
     "url": "https://github.com/Omnivalent/x402-agent-pay"
   },
   "dependencies": {
+    "@x402/core": "^2.3.0",
+    "@x402/evm": "^2.3.0",
+    "@x402/fetch": "^2.3.0",
     "viem": "^2.0.0"
   },
   "devDependencies": {

@@ -3,7 +3,7 @@
  */
 
 import { createPublicClient, http, formatUnits } from 'viem';
-import { NETWORKS, USDC_ADDRESSES } from './config';
+import { CHAINS, USDC_ADDRESSES, NetworkName } from './config';
 
 const ERC20_BALANCE_ABI = [
   {
@@ -17,7 +17,7 @@ const ERC20_BALANCE_ABI = [
 
 export interface BalanceResult {
   wallet: string;
-  network: string;
+  network: NetworkName;
   balanceRaw: bigint;
   balanceUsdc: string;
   sufficient: boolean;
@@ -27,7 +27,7 @@ export interface BalanceResult {
 /**
  * Get USDC address for a network
  */
-export function getUsdcAddress(network: string): `0x${string}` {
+export function getUsdcAddress(network: NetworkName): `0x${string}` {
   const address = USDC_ADDRESSES[network];
   if (!address) {
     throw new Error(`Unsupported network: ${network}`);
@@ -40,17 +40,17 @@ export function getUsdcAddress(network: string): `0x${string}` {
  */
 export async function checkBalance(
   wallet: string,
-  network: string = 'base',
+  network: NetworkName = 'base',
   requiredAmount?: string
 ): Promise<BalanceResult> {
-  const networkConfig = NETWORKS[network];
-  if (!networkConfig) {
+  const chain = CHAINS[network];
+  if (!chain) {
     throw new Error(`Unsupported network: ${network}`);
   }
 
   const client = createPublicClient({
-    chain: networkConfig.chain,
-    transport: http(networkConfig.rpc),
+    chain,
+    transport: http(),
   });
 
   const usdcAddress = USDC_ADDRESSES[network];
@@ -86,7 +86,7 @@ export async function checkBalance(
 export async function hasSufficientBalance(
   wallet: string,
   amount: string,
-  network: string = 'base'
+  network: NetworkName = 'base'
 ): Promise<boolean> {
   const result = await checkBalance(wallet, network, amount);
   return result.sufficient;
@@ -97,16 +97,15 @@ export async function hasSufficientBalance(
  */
 export async function checkAllBalances(
   wallet: string
-): Promise<Record<string, BalanceResult>> {
+): Promise<Record<NetworkName, BalanceResult>> {
+  const networks: NetworkName[] = ['base', 'ethereum', 'arbitrum', 'optimism', 'polygon'];
   const results: Record<string, BalanceResult> = {};
-  
-  const networks = Object.keys(NETWORKS);
-  
+
   await Promise.all(
     networks.map(async (network) => {
       try {
         results[network] = await checkBalance(wallet, network);
-      } catch (error) {
+      } catch (e) {
         results[network] = {
           wallet,
           network,
@@ -118,5 +117,5 @@ export async function checkAllBalances(
     })
   );
 
-  return results;
+  return results as Record<NetworkName, BalanceResult>;
 }

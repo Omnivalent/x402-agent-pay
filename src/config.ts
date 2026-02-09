@@ -1,72 +1,112 @@
 /**
- * Network configuration and constants for x402 payments
+ * x402-agent-pay Configuration
+ * Network configs, spending policies, and constants
  */
 
-import { base, mainnet, arbitrum, optimism, polygon, type Chain } from 'viem/chains';
+import { base, mainnet, arbitrum, optimism, polygon } from 'viem/chains';
+import type { Chain } from 'viem';
 
-export interface NetworkConfig {
-  chain: Chain;
-  rpc: string;
-}
+// Network identifiers (CAIP-2 format for x402 v2)
+export const NETWORK_IDS = {
+  base: 'eip155:8453',
+  ethereum: 'eip155:1',
+  arbitrum: 'eip155:42161',
+  optimism: 'eip155:10',
+  polygon: 'eip155:137',
+  baseSepolia: 'eip155:84532',
+} as const;
 
-export interface PaymentRequirement {
-  amount: string;
-  currency: string;
-  network: string;
-  recipient: string;
-  scheme: string;
-  facilitator?: string;
-}
+export type NetworkName = keyof typeof NETWORK_IDS;
 
-export interface PaymentSignature {
-  signature: string;
-  sender: string;
-  nonce: number;
-  network: string;
-  scheme: string;
-}
-
-export const NETWORKS: Record<string, NetworkConfig> = {
-  base: { 
-    chain: base, 
-    rpc: process.env.BASE_RPC_URL || 'https://mainnet.base.org' 
-  },
-  ethereum: { 
-    chain: mainnet, 
-    rpc: process.env.ETH_RPC_URL || 'https://eth.llamarpc.com' 
-  },
-  arbitrum: { 
-    chain: arbitrum, 
-    rpc: process.env.ARB_RPC_URL || 'https://arb1.arbitrum.io/rpc' 
-  },
-  optimism: { 
-    chain: optimism, 
-    rpc: process.env.OP_RPC_URL || 'https://mainnet.optimism.io' 
-  },
-  polygon: { 
-    chain: polygon, 
-    rpc: process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com' 
+// Chain configs
+export const CHAINS: Record<NetworkName, Chain> = {
+  base,
+  ethereum: mainnet,
+  arbitrum,
+  optimism,
+  polygon,
+  baseSepolia: {
+    id: 84532,
+    name: 'Base Sepolia',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: {
+      default: { http: ['https://sepolia.base.org'] },
+    },
+    testnet: true,
   },
 };
 
-export const USDC_ADDRESSES: Record<string, `0x${string}`> = {
+// USDC addresses per network
+export const USDC_ADDRESSES: Record<NetworkName, `0x${string}`> = {
   base: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   ethereum: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
   arbitrum: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
   optimism: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
   polygon: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+  baseSepolia: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // USDC on Base Sepolia
 };
 
-export const EIP712_DOMAIN = {
-  name: 'x402',
-  version: '2',
+// Facilitator URL
+export const FACILITATOR_URL = 'https://x402.org/facilitator';
+
+/**
+ * Payment Policy — spending controls for autonomous agents
+ */
+export interface PaymentPolicy {
+  /** Maximum USDC per single transaction (in human units, e.g., 0.50) */
+  maxPerTransaction: number;
+  /** Maximum USDC per 24 hours (in human units, e.g., 10.00) */
+  dailyLimit: number;
+  /** Whitelist of approved recipient addresses (if set, only these can receive) */
+  approvedRecipients?: string[];
+  /** Blacklist of blocked recipient addresses */
+  blockedRecipients?: string[];
+  /** Require dry-run simulation before actual payment */
+  requireDryRun?: boolean;
+  /** Auto-approve payments under this amount without logging (in human units) */
+  autoApproveUnder?: number;
+}
+
+/** Default conservative policy for agents */
+export const DEFAULT_POLICY: PaymentPolicy = {
+  maxPerTransaction: 1.00,  // Max $1 per transaction
+  dailyLimit: 10.00,        // Max $10 per day
+  autoApproveUnder: 0.10,   // Auto-approve under $0.10
+  requireDryRun: false,
 };
 
-export const EIP712_TYPES = {
-  Payment: [
-    { name: 'recipient', type: 'address' },
-    { name: 'amount', type: 'uint256' },
-    { name: 'token', type: 'address' },
-    { name: 'nonce', type: 'uint256' },
-  ],
-};
+/**
+ * Payment Receipt for audit trail
+ */
+export interface PaymentReceipt {
+  id: string;
+  timestamp: string;
+  url: string;
+  amount: string;
+  amountRaw: string;
+  currency: string;
+  network: NetworkName;
+  recipient: string;
+  txHash?: string;
+  status: 'success' | 'failed' | 'pending' | 'blocked';
+  blockReason?: string;
+  facilitatorResponse?: unknown;
+}
+
+/**
+ * Agent client configuration
+ */
+export interface AgentPayConfig {
+  /** Wallet private key (with 0x prefix) */
+  privateKey: string;
+  /** Primary network (default: base) */
+  network?: NetworkName;
+  /** Spending policy */
+  policy?: PaymentPolicy;
+  /** Path to store receipts (default: ./receipts.json) */
+  receiptsPath?: string;
+  /** Callback when payment is made */
+  onPayment?: (receipt: PaymentReceipt) => void;
+  /** Callback when payment is blocked by policy */
+  onBlocked?: (reason: string, details: unknown) => void;
+}
