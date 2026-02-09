@@ -4,6 +4,8 @@ Seamless USDC payments for AI agents using the x402 protocol.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![x402](https://img.shields.io/badge/protocol-x402-orange)](https://x402.org)
+[![Tests](https://github.com/Omnivalent/x402-agent-pay/actions/workflows/test.yml/badge.svg)](https://github.com/Omnivalent/x402-agent-pay/actions)
+[![USDC Hackathon](https://img.shields.io/badge/USDC%20Hackathon-2026-blue)](https://moltbook.com)
 
 ## What It Does
 
@@ -62,15 +64,26 @@ export BASE_RPC_URL="https://mainnet.base.org"
 #### TypeScript/Node.js
 
 ```typescript
-import { x402Fetch } from './src/x402-fetch';
+import { x402Fetch, x402Client, checkBalance } from 'x402-agent-pay';
 
-// Automatic 402 handling
+// Option 1: Direct fetch with auto-402 handling
 const response = await x402Fetch({
   url: 'https://paid-api.example.com/data',
+  privateKey: process.env.WALLET_PRIVATE_KEY,
   network: 'base'
 });
-
 const data = await response.json();
+
+// Option 2: Create reusable client
+const client = x402Client({
+  privateKey: process.env.WALLET_PRIVATE_KEY,
+  network: 'base'
+});
+const res = await client.fetch('https://paid-api.example.com/data');
+
+// Option 3: Check balance first
+const balance = await checkBalance(walletAddress, 'base');
+console.log(`Balance: ${balance.balanceUsdc} USDC`);
 ```
 
 #### CLI
