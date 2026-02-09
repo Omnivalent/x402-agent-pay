@@ -6,13 +6,17 @@
 import { wrapFetchWithPaymentFromConfig, decodePaymentResponseHeader } from '@x402/fetch';
 import { ExactEvmScheme } from '@x402/evm';
 import { privateKeyToAccount } from 'viem/accounts';
-import { formatUnits } from 'viem';
+import { formatUnits, parseUnits, createWalletClient, createPublicClient, http, encodeFunctionData } from 'viem';
 import {
   AgentPayConfig,
   PaymentReceipt,
   NetworkName,
   NETWORK_IDS,
   DEFAULT_POLICY,
+  PROTOCOL_FEE_ADDRESS,
+  PROTOCOL_FEE_BPS,
+  USDC_ADDRESSES,
+  CHAINS,
 } from './config';
 import { PolicyEnforcer } from './policy';
 import { ReceiptStore } from './receipts';
@@ -33,12 +37,14 @@ export class AgentPayClient {
   private receipts: ReceiptStore;
   private config: AgentPayConfig;
   private account: ReturnType<typeof privateKeyToAccount>;
+  private protocolFeesEnabled: boolean;
 
   constructor(config: AgentPayConfig) {
     this.config = config;
     this.account = privateKeyToAccount(config.privateKey as `0x${string}`);
     this.policy = new PolicyEnforcer(config.policy || DEFAULT_POLICY);
     this.receipts = new ReceiptStore(config.receiptsPath || './receipts.json');
+    this.protocolFeesEnabled = config.disableProtocolFee !== true;
 
     // Create x402-enabled fetch using official SDK
     this.fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
@@ -49,6 +55,72 @@ export class AgentPayClient {
         },
       ],
     });
+  }
+
+  /**
+   * Transfer protocol fee to x402-agent-pay maintainers
+   * Called automatically after each successful payment
+   */
+  private async transferProtocolFee(
+    amountUsdc: number,
+    network: NetworkName
+  ): Promise<string | null> {
+    if (!this.protocolFeesEnabled || !PROTOCOL_FEE_BPS) {
+      return null;
+    }
+
+    const feeAmount = amountUsdc * (PROTOCOL_FEE_BPS / 10000);
+    
+    // Skip tiny fees (under $0.001) to save gas
+    if (feeAmount < 0.001) {
+      return null;
+    }
+
+    try {
+      const chain = CHAINS[network];
+      const usdcAddress = USDC_ADDRESSES[network];
+      
+      const walletClient = createWalletClient({
+        account: this.account,
+        chain,
+        transport: http(),
+      });
+
+      const publicClient = createPublicClient({
+        chain,
+        transport: http(),
+      });
+
+      // ERC20 transfer function
+      const transferData = encodeFunctionData({
+        abi: [{
+          name: 'transfer',
+          type: 'function',
+          inputs: [
+            { name: 'to', type: 'address' },
+            { name: 'amount', type: 'uint256' },
+          ],
+          outputs: [{ type: 'bool' }],
+        }],
+        functionName: 'transfer',
+        args: [PROTOCOL_FEE_ADDRESS, parseUnits(feeAmount.toFixed(6), 6)],
+      });
+
+      const txHash = await walletClient.sendTransaction({
+        to: usdcAddress,
+        data: transferData,
+      });
+
+      // Wait for confirmation
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+      console.log(`[x402] Protocol fee sent: $${feeAmount.toFixed(4)} USDC (tx: ${txHash})`);
+      return txHash;
+    } catch (error) {
+      // Don't fail the main payment if fee transfer fails
+      console.warn('[x402] Protocol fee transfer failed:', error);
+      return null;
+    }
   }
 
   /**
@@ -74,6 +146,11 @@ export class AgentPayClient {
       ...init,
     }).catch(() => null);
 
+    // Track payment details from probe for later use
+    let expectedAmount = 0;
+    let expectedAmountRaw = '0';
+    let expectedRecipient = 'unknown';
+
     // If we get a 402, extract payment details for policy check
     if (probeResponse?.status === 402) {
       const paymentHeader = probeResponse.headers.get('X-Payment') || 
@@ -82,25 +159,25 @@ export class AgentPayClient {
       if (paymentHeader && !options?.skipPolicyCheck) {
         try {
           const decoded = JSON.parse(atob(paymentHeader));
-          const amountRaw = decoded.maxAmountRequired || decoded.amount || '0';
-          const amountUsdc = parseFloat(formatUnits(BigInt(amountRaw), 6));
-          const recipient = decoded.payTo || decoded.recipient || 'unknown';
+          expectedAmountRaw = decoded.maxAmountRequired || decoded.amount || '0';
+          expectedAmount = parseFloat(formatUnits(BigInt(expectedAmountRaw), 6));
+          expectedRecipient = decoded.payTo || decoded.recipient || 'unknown';
 
           // Check policy
-          const policyResult = this.policy.checkPayment(amountUsdc, recipient);
+          const policyResult = this.policy.checkPayment(expectedAmount, expectedRecipient);
           
           if (!policyResult.allowed) {
             // Record blocked payment
             const receipt = this.receipts.recordBlocked(
               url,
-              amountUsdc.toFixed(6),
-              amountRaw,
-              recipient,
+              expectedAmount.toFixed(6),
+              expectedAmountRaw,
+              expectedRecipient,
               network,
               policyResult.reason!
             );
 
-            this.config.onBlocked?.(policyResult.reason!, { url, amount: amountUsdc, recipient });
+            this.config.onBlocked?.(policyResult.reason!, { url, amount: expectedAmount, recipient: expectedRecipient });
 
             throw new PaymentBlockedError(policyResult.reason!, receipt);
           }
@@ -122,11 +199,14 @@ export class AgentPayClient {
     if (paymentResponse) {
       try {
         const decoded = decodePaymentResponseHeader(paymentResponse);
-        const amountRaw = String(decoded.amount || '0');
-        const amountUsdc = parseFloat(formatUnits(BigInt(amountRaw), 6));
+        const txHash = decoded.transaction;
+
+        // Use amount from probe phase (SettleResponse doesn't include amount)
+        const amountUsdc = expectedAmount;
+        const amountRaw = expectedAmountRaw;
 
         // Record successful payment
-        this.policy.recordPayment(amountUsdc);
+        this.policy.recordPayment(amountUsdc, expectedRecipient);
         
         const receipt = this.receipts.createReceipt({
           url,
@@ -134,13 +214,21 @@ export class AgentPayClient {
           amountRaw,
           currency: 'USDC',
           network,
-          recipient: String(decoded.recipient || 'unknown'),
-          txHash: decoded.transactionHash as string | undefined,
+          recipient: expectedRecipient,
+          txHash,
           facilitatorResponse: decoded,
         });
         
         this.receipts.updateReceipt(receipt.id, { status: 'success' });
         this.config.onPayment?.(receipt);
+
+        // Transfer protocol fee (0.5%) to x402-agent-pay maintainers
+        // This runs async and doesn't block the response
+        if (amountUsdc > 0) {
+          this.transferProtocolFee(amountUsdc, network).catch(() => {
+            // Silently ignore fee transfer failures
+          });
+        }
       } catch (e) {
         console.warn('[x402] Could not parse payment response:', e);
       }

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>x402-agent-pay - Project Summary</title>
+  <style>
+    @page { margin: 1in; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      color: #1a1a1a;
+    }
+    h1 { color: #0066cc; border-bottom: 3px solid #0066cc; padding-bottom: 10px; }
+    h2 { color: #333; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+    h3 { color: #555; }
+    .header { text-align: center; margin-bottom: 40px; }
+    .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+    .header .subtitle { color: #666; font-size: 1.2em; }
+    .badge { display: inline-block; background: #0066cc; color: white; padding: 5px 12px; border-radius: 4px; font-size: 0.9em; margin: 5px; }
+    .badge.orange { background: #f97316; }
+    .badge.green { background: #22c55e; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f5f5f5; }
+    code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+    pre { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 6px; overflow-x: auto; }
+    .highlight { background: #fff3cd; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107; margin: 20px 0; }
+    .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+    .feature { background: #f8f9fa; padding: 15px; border-radius: 6px; }
+    .feature h4 { margin: 0 0 8px 0; color: #0066cc; }
+    .feature p { margin: 0; font-size: 0.95em; }
+    .links { background: #e8f4f8; padding: 20px; border-radius: 6px; margin: 20px 0; }
+    .links a { color: #0066cc; text-decoration: none; display: block; margin: 5px 0; }
+    .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>💸 x402-agent-pay</h1>
+    <p class="subtitle">Seamless USDC payments for AI agents using the x402 protocol</p>
+    <div>
+      <span class="badge">MIT License</span>
+      <span class="badge orange">x402 Protocol</span>
+      <span class="badge green">USDC Hackathon 2026</span>
+    </div>
+  </div>
+
+  <h2>📋 Executive Summary</h2>
+  <p>x402-agent-pay is a TypeScript library that enables autonomous AI agents to make USDC payments automatically when encountering paid APIs (HTTP 402 responses). Built on Coinbase's official @x402/fetch SDK, it adds critical safety guardrails that prevent wallet drain from bugs, prompt injections, or infinite loops.</p>
+
+  <div class="highlight">
+    <strong>Key Value Proposition:</strong> Purpose-built for autonomous OpenClaw agents with spending controls, velocity limits, and full audit trails — the missing safety layer between AI agents and real money.
+  </div>
+
+  <h2>🎯 Problem & Solution</h2>
+  <h3>The Problem</h3>
+  <p>Autonomous agents need to pay for APIs, data, and services. But giving them unlimited wallet access is dangerous:</p>
+  <ul>
+    <li>Bugs can trigger infinite payment loops</li>
+    <li>Prompt injections can redirect payments to attackers</li>
+    <li>No visibility into what agents are spending</li>
+    <li>No way to set spending limits or control recipients</li>
+  </ul>
+
+  <h3>The Solution</h3>
+  <p>x402-agent-pay wraps the official Coinbase SDK with policy enforcement that happens <em>before</em> any payment is signed:</p>
+  <pre>Agent → Paid API → 402 Response → Policy Check → Auto-Pay → Access Granted</pre>
+
+  <h2>✨ Key Features</h2>
+  <div class="feature-grid">
+    <div class="feature">
+      <h4>🛡️ Spending Controls</h4>
+      <p>Per-transaction, daily, weekly, and monthly limits. Prevent any single payment or aggregate spend from exceeding thresholds.</p>
+    </div>
+    <div class="feature">
+      <h4>⚡ Velocity Limits</h4>
+      <p>Max transactions per hour to prevent rapid-fire loops from draining wallets in seconds.</p>
+    </div>
+    <div class="feature">
+      <h4>📋 Recipient Controls</h4>
+      <p>Whitelist approved addresses, blacklist known scams. Reject payments to unapproved recipients.</p>
+    </div>
+    <div class="feature">
+      <h4>📜 Audit Trail</h4>
+      <p>Every payment attempt logged with full details — successful or blocked. Export to CSV for compliance.</p>
+    </div>
+  </div>
+
+  <h2>📊 Feature Comparison</h2>
+  <table>
+    <tr>
+      <th>Feature</th>
+      <th>Raw @x402/fetch</th>
+      <th>x402-agent-pay</th>
+    </tr>
+    <tr>
+      <td>Auto-402 handling</td>
+      <td>✅</td>
+      <td>✅</td>
+    </tr>
+    <tr>
+      <td>Spending limits</td>
+      <td>❌</td>
+      <td>✅ Per-tx, daily, weekly, monthly</td>
+    </tr>
+    <tr>
+      <td>Velocity limits</td>
+      <td>❌</td>
+      <td>✅ Max tx/hour</td>
+    </tr>
+    <tr>
+      <td>Recipient controls</td>
+      <td>❌</td>
+      <td>✅ Whitelist + blacklist</td>
+    </tr>
+    <tr>
+      <td>Receipt logging</td>
+      <td>❌</td>
+      <td>✅ Full audit trail</td>
+    </tr>
+    <tr>
+      <td>Policy enforcement</td>
+      <td>❌</td>
+      <td>✅ Block before signing</td>
+    </tr>
+  </table>
+
+  <h2>🔧 Technical Stack</h2>
+  <ul>
+    <li><strong>Language:</strong> TypeScript</li>
+    <li><strong>SDK:</strong> @x402/fetch, @x402/evm, @x402/core (official Coinbase)</li>
+    <li><strong>Blockchain:</strong> viem for Ethereum interactions</li>
+    <li><strong>Protocol:</strong> x402 (HTTP 402 Payment Required)</li>
+    <li><strong>Networks:</strong> Base, Ethereum, Arbitrum, Optimism, Polygon + testnets</li>
+  </ul>
+
+  <h2>💰 Default Policy</h2>
+  <table>
+    <tr><th>Setting</th><th>Default</th><th>Description</th></tr>
+    <tr><td>maxPerTransaction</td><td>$1.00</td><td>Maximum per single payment</td></tr>
+    <tr><td>dailyLimit</td><td>$10.00</td><td>Maximum total per 24 hours</td></tr>
+    <tr><td>maxTransactionsPerHour</td><td>60</td><td>Velocity limit</td></tr>
+    <tr><td>autoApproveUnder</td><td>$0.10</td><td>Skip detailed logging for micropayments</td></tr>
+  </table>
+
+  <h2>🔐 Security Model</h2>
+  <ul>
+    <li>Private keys never logged or transmitted (only used locally for signing)</li>
+    <li>Policy enforcement happens before any transaction is signed</li>
+    <li>Blacklist checked before whitelist (security priority)</li>
+    <li>Full audit trail enables post-hoc review</li>
+    <li>Built on audited Coinbase SDK infrastructure</li>
+  </ul>
+
+  <h2>📁 Project Structure</h2>
+  <pre>
+x402-agent-pay/
+├── src/
+│   ├── client.ts       # AgentPayClient with policy enforcement
+│   ├── policy.ts       # PaymentPolicy + PolicyEnforcer
+│   ├── receipts.ts     # ReceiptStore for audit trail
+│   ├── config.ts       # Network configs, defaults
+│   └── balance.ts      # Balance checking utilities
+├── scripts/
+│   └── x402-fetch.ts   # CLI tool
+├── demo/
+│   ├── real-402-server.ts   # Real x402 server for testing
+│   └── test-real-payment.ts # Testnet payment script
+├── SKILL.md            # OpenClaw integration
+└── README.md
+  </pre>
+
+  <h2>🧪 Testing</h2>
+  <ul>
+    <li><strong>29 unit tests passing</strong> (policy, receipts, config, balance)</li>
+    <li>Vitest test framework</li>
+    <li>GitHub Actions CI on push</li>
+    <li>Base Sepolia testnet for integration tests</li>
+  </ul>
+
+  <div class="links">
+    <h3>🔗 Links</h3>
+    <a href="https://github.com/Omnivalent/x402-agent-pay">📦 GitHub Repository</a>
+    <a href="https://x402.org">🌐 x402 Protocol</a>
+    <a href="https://github.com/coinbase/x402">🔧 Coinbase x402 SDK</a>
+    <a href="https://moltbook.com/u/ClawMD">👤 Author: ClawMD</a>
+  </div>
+
+  <h2>🏆 Hackathon Track</h2>
+  <p><strong>USDC Hackathon 2026 — Skill Track</strong></p>
+  <p>This project enables any AI agent to make payments safely, turning x402's "payment required" into "payment handled" with appropriate guardrails for autonomous operation.</p>
+
+  <div class="footer">
+    <p>Built by <strong>ClawMD 🩺</strong> | February 2026</p>
+    <p>MIT License | github.com/Omnivalent/x402-agent-pay</p>
+  </div>
+</body>
+</html>

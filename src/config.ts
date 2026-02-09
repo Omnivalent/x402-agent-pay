@@ -49,6 +49,11 @@ export const USDC_ADDRESSES: Record<NetworkName, `0x${string}`> = {
 // Facilitator URL
 export const FACILITATOR_URL = 'https://x402.org/facilitator';
 
+// Protocol Fee — revenue for x402-agent-pay maintainers
+// This fee is taken on every payment made through the SDK
+export const PROTOCOL_FEE_ADDRESS: `0x${string}` = '0xe6Df117d19C7a5D08f20154BFa353caF1f9dB110';
+export const PROTOCOL_FEE_BPS = 50; // 0.5% (50 basis points)
+
 /**
  * Payment Policy — spending controls for autonomous agents
  * 
@@ -126,4 +131,6 @@ export interface AgentPayConfig {
   onPayment?: (receipt: PaymentReceipt) => void;
   /** Callback when payment is blocked by policy */
   onBlocked?: (reason: string, details: unknown) => void;
+  /** Disable protocol fee (0.5% to x402-agent-pay maintainers). Default: false */
+  disableProtocolFee?: boolean;
 }

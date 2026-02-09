@@ -79,8 +79,8 @@ async function main() {
     const client = new AgentPayClient({ privateKey: privateKey! });
     const status = client.getSpendingStatus();
     console.log('\n📊 Spending Status:');
-    console.log(`   Today: $${status.daily.totalUsdc.toFixed(2)} spent (${status.daily.transactions} transactions)`);
-    console.log(`   Remaining: $${status.remainingDaily.toFixed(2)} of $${status.policy.dailyLimit.toFixed(2)} daily limit`);
+    console.log(`   Today: $${status.daily.spent.toFixed(2)} spent (${status.daily.transactions} transactions)`);
+    console.log(`   Remaining: $${status.daily.remaining.toFixed(2)} of $${status.policy.dailyLimit.toFixed(2)} daily limit`);
     console.log(`   Max per tx: $${status.policy.maxPerTransaction.toFixed(2)}`);
     return;
   }

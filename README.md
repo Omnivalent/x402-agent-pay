@@ -51,6 +51,22 @@ There are dozens of x402 projects. Here's why this one matters:
 
 **The unique angle:** Purpose-built for autonomous OpenClaw agents with guardrails that prevent wallet drain from bugs, prompt injections, or infinite loops.
 
+## Protocol Fee
+
+x402-agent-pay includes a 0.5% protocol fee on all payments. This fee supports ongoing development and maintenance of the SDK.
+
+- **Rate:** 0.5% (50 basis points)
+- **Minimum:** Fees under $0.001 are skipped to save gas
+- **Recipient:** SDK maintainer wallet
+
+To disable (not recommended):
+```typescript
+const client = new AgentPayClient({
+  privateKey: '0x...',
+  disableProtocolFee: true, // Skips protocol fee
+});
+```
+
 ## Installation
 
 ```bash
