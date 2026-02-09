@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "updated": "2026-02-09",
+  "description": "x402-agent-pay Service Registry - Discover x402-enabled APIs",
+  "services": [
+    {
+      "id": "x402-weather",
+      "name": "x402 Weather API",
+      "description": "Real-time weather data with x402 micropayments",
+      "url": "https://weather.x402.org",
+      "category": "weather",
+      "networks": ["eip155:8453", "eip155:84532", "eip155:1"],
+      "priceRange": { "min": 0.001, "max": 0.01 },
+      "endpoints": [
+        { "path": "/current", "method": "GET", "price": 0.001, "description": "Current weather for a location" },
+        { "path": "/forecast", "method": "GET", "price": 0.005, "description": "5-day forecast" },
+        { "path": "/historical", "method": "GET", "price": 0.01, "description": "Historical weather data" }
+      ],
+      "meta": {
+        "provider": "x402.org",
+        "docs": "https://x402.org/docs/weather",
+        "uptime": 99.9
+      }
+    },
+    {
+      "id": "blockrun-llm",
+      "name": "BlockRun LLM Router",
+      "description": "AI inference with automatic model routing and x402 payments",
+      "url": "https://api.blockrun.ai",
+      "category": "ai",
+      "networks": ["eip155:8453", "eip155:84532"],
+      "priceRange": { "min": 0.0001, "max": 0.10 },
+      "endpoints": [
+        { "path": "/v1/chat/completions", "method": "POST", "price": 0.001, "description": "Chat completions (auto-routed)" },
+        { "path": "/v1/embeddings", "method": "POST", "price": 0.0001, "description": "Text embeddings" }
+      ],
+      "meta": {
+        "provider": "BlockRun",
+        "docs": "https://blockrun.ai/docs"
+      }
+    },
+    {
+      "id": "minara-trading",
+      "name": "Minara Trading Intelligence",
+      "description": "AI-powered crypto trading signals and analysis",
+      "url": "https://x402.minara.ai",
+      "category": "finance",
+      "networks": ["eip155:8453", "eip155:1", "eip155:42161", "eip155:10", "eip155:137", "solana:mainnet"],
+      "priceRange": { "min": 0.01, "max": 1.00 },
+      "endpoints": [
+        { "path": "/chat", "method": "POST", "price": 0.05, "description": "Trading intelligence chat" },
+        { "path": "/intent-to-swap", "method": "POST", "price": 0.01, "description": "Natural language to swap transaction" },
+        { "path": "/perpetual-signal", "method": "GET", "price": 0.10, "description": "AI trading signals" },
+        { "path": "/prediction-analysis", "method": "POST", "price": 0.05, "description": "Prediction market analysis" }
+      ],
+      "meta": {
+        "provider": "Minara AI",
+        "docs": "https://minara.ai/docs"
+      }
+    },
+    {
+      "id": "agent-proxy",
+      "name": "Agent Proxy Service",
+      "description": "Residential proxies for agents - pay per request",
+      "url": "https://proxy.agent.market",
+      "category": "compute",
+      "networks": ["eip155:8453", "eip155:84532"],
+      "priceRange": { "min": 0.001, "max": 0.05 },
+      "endpoints": [
+        { "path": "/proxy", "method": "POST", "price": 0.005, "description": "Make a proxied HTTP request" },
+        { "path": "/countries", "method": "GET", "price": 0.001, "description": "List available proxy countries" }
+      ],
+      "meta": {
+        "provider": "Agent Market",
+        "rateLimit": "100 req/min"
+      }
+    },
+    {
+      "id": "oracle-price",
+      "name": "Price Oracle",
+      "description": "Real-time crypto price feeds with x402",
+      "url": "https://oracle.x402.org",
+      "category": "oracle",
+      "networks": ["eip155:8453", "eip155:1"],
+      "priceRange": { "min": 0.0001, "max": 0.001 },
+      "endpoints": [
+        { "path": "/price/:pair", "method": "GET", "price": 0.0001, "description": "Get price for a trading pair" },
+        { "path": "/prices", "method": "POST", "price": 0.001, "description": "Batch price request" }
+      ],
+      "meta": {
+        "provider": "x402.org"
+      }
+    }
+  ]
+}

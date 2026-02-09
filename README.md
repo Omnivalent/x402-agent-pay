@@ -44,6 +44,7 @@ Autonomous agents need to pay for things, but giving them unlimited wallet acces
 - 📜 **Audit trail** — Every payment attempt logged with receipts
 - 🔌 **Facilitator integration** — Connects to Coinbase's x402 facilitator
 - ⚡ **Official SDK** — Built on Coinbase's @x402/fetch
+- 🔍 **Service Discovery** — Find x402-enabled APIs programmatically (no hardcoding)
 
 ## How This Differs
 
@@ -140,6 +141,35 @@ const client = new AgentPayClient({
   },
 });
 ```
+
+## Service Discovery
+
+Find x402-enabled APIs without hardcoding URLs — a first for agent payment infrastructure:
+
+```typescript
+import { discoverServices, ServiceDiscovery } from 'x402-agent-pay';
+
+// Find all weather APIs
+const weatherApis = await discoverServices({ category: 'weather' });
+
+// Find cheap services under $0.01
+const cheapServices = await discoverServices({ maxPrice: 0.01 });
+
+// Find services on Base network
+const baseServices = await discoverServices({ network: 'eip155:8453' });
+
+// Search by keyword
+const aiServices = await discoverServices({ query: 'trading' });
+
+// Get the cheapest option in a category
+const discovery = new ServiceDiscovery();
+const cheapestWeather = await discovery.findCheapest('weather');
+console.log(cheapestWeather?.url); // → Use with client.fetch()
+```
+
+**Available Categories:** `weather`, `data`, `ai`, `compute`, `storage`, `oracle`, `search`, `media`, `finance`
+
+The registry is open — submit your x402-enabled service via PR to `registry.json`.
 
 ## CLI Usage
 

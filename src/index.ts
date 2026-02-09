@@ -37,9 +37,21 @@ export {
   CHAINS,
   USDC_ADDRESSES,
   FACILITATOR_URL,
+  PROTOCOL_FEE_ADDRESS,
+  PROTOCOL_FEE_BPS,
   DEFAULT_POLICY,
   type NetworkName,
   type PaymentPolicy,
   type PaymentReceipt,
   type AgentPayConfig,
 } from './config';
+
+// Service Discovery - find x402-enabled APIs programmatically
+export {
+  ServiceDiscovery,
+  getDiscovery,
+  discoverServices,
+  type X402Service,
+  type X402Endpoint,
+  type ServiceCategory,
+} from './discovery';
