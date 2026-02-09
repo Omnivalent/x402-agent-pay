@@ -9,6 +9,10 @@ Seamless USDC payments for AI agents using the x402 protocol.
 
 > Built on the official [@x402/fetch](https://github.com/coinbase/x402) SDK with spending controls and audit trails for autonomous agents.
 
+## Demo
+
+![x402-agent-pay demo](demo/demo.svg)
+
 ## What It Does
 
 When an AI agent hits a paid API (HTTP 402 Payment Required), this skill handles payment automatically — with safety guardrails:
