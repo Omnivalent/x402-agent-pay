@@ -1,4 +1,5 @@
 # x402-agent-pay 💸
+### The Agent Payment Skill
 
 Seamless USDC payments for AI agents using the x402 protocol.
 

@@ -1,7 +1,7 @@
 {
   "name": "x402-agent-pay",
   "version": "2.2.0",
-  "description": "Seamless USDC payments for AI agents using the x402 protocol",
+  "description": "The Agent Payment Skill — Seamless USDC payments for AI agents using the x402 protocol",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
