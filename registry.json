@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "version": "1.0.0",
-  "updated": "2026-02-09",
+  "updated": "2026-09-21",
   "description": "x402-agent-pay Service Registry - Discover x402-enabled APIs",
   "services": [
     {
@@ -90,6 +90,26 @@
       ],
       "meta": {
         "provider": "x402.org"
+      }
+    },
+    {
+      "id": "pennyapi-search",
+      "name": "PennyAPI Web Search",
+      "description": "Low-cost live web search, local Places lookup, and lightweight agent utilities with x402 payments",
+      "url": "https://pennyregwatch.com",
+      "category": "search",
+      "networks": ["eip155:8453"],
+      "priceRange": { "min": 0.001, "max": 0.004 },
+      "endpoints": [
+        { "path": "/v1/search/lite", "method": "POST", "price": 0.001, "description": "Lite live web search" },
+        { "path": "/v1/search", "method": "POST", "price": 0.004, "description": "Premium live web search with richer results and freshness control" },
+        { "path": "/web/places", "method": "POST", "price": 0.004, "description": "Local business / Places search" },
+        { "path": "/v1/x402/preflight", "method": "GET", "price": 0.001, "description": "Inspect an x402 payment surface before paying" },
+        { "path": "/v1/robots", "method": "GET", "price": 0.001, "description": "Robots.txt permission decision" }
+      ],
+      "meta": {
+        "provider": "PennyAPI",
+        "docs": "https://pennyregwatch.com/openapi.json"
       }
     }
   ]
