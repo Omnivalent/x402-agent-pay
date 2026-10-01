@@ -1,9 +1,26 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "version": "1.0.0",
-  "updated": "2026-02-09",
+  "updated": "2026-10-01",
   "description": "x402-agent-pay Service Registry - Discover x402-enabled APIs",
   "services": [
+    {
+      "id": "agent-intelligence-platform",
+      "name": "Agent Intelligence Platform",
+      "description": "Source-backed EU procurement opportunities and industrial project signals for autonomous agents",
+      "url": "https://agent-intelligence-platform.fhochard.workers.dev",
+      "category": "data",
+      "networks": ["eip155:8453"],
+      "priceRange": { "min": 0.01, "max": 0.01 },
+      "endpoints": [
+        { "path": "/v1/experiments/procurement?target_cpv=45111000", "method": "GET", "price": 0.01, "description": "Rank source-backed EU tender opportunities with deadline and value context" },
+        { "path": "/v1/signals/premium?country=FR", "method": "GET", "price": 0.01, "description": "Industrial project signals with source and company context" }
+      ],
+      "meta": {
+        "provider": "Agent Intelligence Platform",
+        "docs": "https://agent-intelligence-platform.fhochard.workers.dev/buyer-agent-guide.md"
+      }
+    },
     {
       "id": "x402-weather",
       "name": "x402 Weather API",
@@ -94,3 +111,4 @@
     }
   ]
 }
+
